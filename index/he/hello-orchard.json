@@ -1,0 +1,22 @@
+{
+  "name": "hello-orchard",
+  "owners": [
+    "Circuit-Overtime"
+  ],
+  "description": "A friendly greeting: the example package of Orchard",
+  "repository": "https://github.com/plumlang/registry",
+  "keywords": [
+    "example",
+    "greeting"
+  ],
+  "versions": [
+    {
+      "version": "1.0.0",
+      "sha256": "a8c3f84846d55481d0857a13cd8a7d6fbb12e88023b7d3006cd955fef7b73b0d",
+      "dependencies": {},
+      "plum": ">=0.0",
+      "published": "2026-11-16T08:28:11Z",
+      "yanked": false
+    }
+  ]
+}

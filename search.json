@@ -1,0 +1,14 @@
+{
+  "packages": [
+    {
+      "name": "hello-orchard",
+      "version": "1.0.0",
+      "description": "A friendly greeting: the example package of Orchard",
+      "keywords": [
+        "example",
+        "greeting"
+      ],
+      "repository": "https://github.com/plumlang/registry"
+    }
+  ]
+}

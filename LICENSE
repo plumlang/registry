@@ -1,0 +1,109 @@
+ELIXPO LICENSE
+==============
+
+This repository is part of the Elixpo ecosystem and is licensed under the
+Elixpo licensing standard, the same standard that applies to every Elixpo
+repository. Product-specific terms for this repository are declared in the
+NOTICE file at the repository root (the "notice board"), which must be read
+together with this LICENSE.
+
+The LICENSES/ directory holds the canonical texts; this file is the pointer.
+
+This repository is Orchard, the package registry of Plumlang. It holds
+three kinds of things, under three grants, and the packages people publish,
+which keep their own licences.
+
+CODE
+====
+
+All code in this repository (tools/, the workflows and actions under
+.github/, and any scripts and configuration) is provided under:
+
+	SPDX-License-Identifier: MIT WITH Plumlang-trademarks
+
+Being under the terms of the MIT License, as set out in:
+
+	LICENSES/preferred/MIT
+
+CONTENT
+=======
+
+The documentation and other written content (README.md, CONTRIBUTING.md,
+the issue forms' text) is provided under:
+
+	SPDX-License-Identifier: CC-BY-4.0 WITH Plumlang-trademarks
+
+Being under the terms of the Creative Commons Attribution 4.0 International
+License, as set out in:
+
+	LICENSES/preferred/CC-BY-4.0
+
+INDEX METADATA
+==============
+
+The index itself, everything under index/ and the file search.json (package
+names, versions, checksums, dependencies, descriptions, keywords, owners and
+dates), is dedicated to the public domain under:
+
+	SPDX-License-Identifier: CC0-1.0
+
+As set out in:
+
+	LICENSES/preferred/CC0-1.0
+
+so that anyone may mirror, search and build on the index without
+conditions. Descriptions and keywords are submitted by package authors, who
+agree to this dedication by publishing.
+
+PACKAGES
+========
+
+The bundles under packages/ are the published packages. Each keeps the
+licence its authors chose, named in its plum.toml (`license`) and its
+LICENSE file; this repository grants nothing over them. The example package
+under examples/hello-orchard/ is under the MIT License, as its LICENSE says.
+
+EXCEPTION (names, marks, and royalties)
+=======================================
+
+The code and content grants above carry an explicit trademark and naming
+exception:
+
+	LICENSES/exceptions/Plumlang-trademarks
+
+which also incorporates the Elixpo reservations in:
+
+	LICENSES/exceptions/Oreo-trademarks
+
+The licences grant rights to the files as files. They do NOT grant rights
+to the Plumlang, Orchard, Elixpo or Oreo names or brands, nor the right to
+offer a competing registry or service under them.
+
+NOTICE BOARD (per-product reservations)
+=======================================
+
+Reservations for this repository, such as the Orchard name and the official
+index, are declared in:
+
+	NOTICE
+
+THIRD-PARTY NOTICES
+===================
+
+Third-party components keep their own licences:
+
+	LICENSES/notices/notice-board
+	LICENSES/README.md
+
+CONTRIBUTIONS
+=============
+
+By submitting a contribution to this repository you agree that it is licensed
+inbound under this standard (MIT for code, CC-BY-4.0 for content, CC0-1.0 for
+index metadata) and that you have the right to submit it. A package you
+publish stays under its own licence. The Developer Certificate of Origin
+(https://developercertificate.org) applies to every commit. We do not require
+a CLA.
+
+Copyright (c) 2026 Elixpo and the Plumlang contributors.
+SPDX-License-Identifier: MIT WITH Plumlang-trademarks

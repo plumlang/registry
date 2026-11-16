@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.plum-source/
+/examples/*/*.plumpkg
+/examples/*/plum.lock

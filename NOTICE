@@ -1,0 +1,37 @@
+NOTICE - the notice board
+=========================
+
+This repository is licensed under the Elixpo License (see ./LICENSE). This
+NOTICE file records reservations and product-specific terms that sit ON TOP
+of that licence. Read it together with LICENSE and
+LICENSES/exceptions/Plumlang-trademarks.
+
+REPOSITORY
+----------
+
+  Name:        plumlang/registry
+  What it is:  Orchard, the package registry of Plumlang: the index of
+               published packages, their bundles, and the workflows that
+               publish, yank and check them.
+
+EXCLUSIVE TO THIS REPOSITORY
+----------------------------
+
+  * The names "Orchard" and "Plumlang Orchard" for a Plumlang package
+    registry, and the official index served from this repository and from
+    Elixpo's hosts (orchard.plum.elixpo.com and plum.elixpo.com). Mirrors of
+    the index are welcome under CC0-1.0, but may not present themselves as
+    the official Orchard.
+  * Package names on Orchard are allocated by this repository's rules
+    (README.md). Owning a name here gives no rights in the name elsewhere,
+    and no trademark.
+
+PACKAGES
+--------
+
+  * Packages are published by their authors and keep their own licences.
+    Elixpo distributes them as published and does not review their code;
+    reports of malware, stolen code, secrets or squatting go to
+    hello@elixpo.com, and offending packages are removed.
+
+Contact: hello@elixpo.com

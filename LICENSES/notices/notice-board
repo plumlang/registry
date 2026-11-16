@@ -1,0 +1,23 @@
+THIRD-PARTY NOTICES
+===================
+
+This repository's own code uses no third-party components: the tools use
+only the Python standard library (PSF License), run by the workflows, and
+not distributed here.
+
+The workflows use these GitHub Actions, pinned by commit:
+
+  * actions/checkout           - MIT, Copyright (c) 2018 GitHub, Inc.
+
+The shared Elixpo workflows under .github/workflows (elixpo-ci, quality-gate,
+pr-management, stale-management, elixpoo-*) are copied from plumlang/plumlang
+by its tools/sync-github.sh, with the actions they use.
+
+and build or download Plumlang (plumlang/plumlang), which is under the
+Plumlang Commercial License 1.0 and is not distributed here.
+
+The bundles under packages/ are packages published by their authors, each
+under the licence it names; they are not part of this repository's code.
+
+If you believe a component is missing from this list, please open an issue
+or email hello@elixpo.com.

@@ -1,0 +1,97 @@
+# SPDX-License-Identifier: MIT WITH Plumlang-trademarks
+#
+# Yank a version: runs on an issue opened (or edited) from the "Yank a
+# version" form, which labels it `yank`. Only an owner of the package (the
+# issue's author) can yank. The version stays installable from lock files
+# that have it, but `plum` never chooses it again. Nothing is deleted.
+#
+# The issue's text is untrusted: it reaches the shell only through
+# environment variables, checked by tools/orchard.py against strict patterns.
+name: Yank
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions: {}
+
+concurrency:
+  group: yank-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  yank:
+    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'yank')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # commit the index to main
+      issues: write   # reply, and close the issue
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Start the reply
+        run: |
+          echo "ORCHARD_MESSAGE=$RUNNER_TEMP/message.md" >>"$GITHUB_ENV"
+          : >"$RUNNER_TEMP/message.md"
+
+      - name: Read the request
+        id: request
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python3 tools/orchard.py parse-issue yank
+
+      - name: Yank it and commit to main
+        env:
+          PACKAGE: ${{ steps.request.outputs.package }}
+          VERSION: ${{ steps.request.outputs.version }}
+          AUTHOR: ${{ github.event.issue.user.login }}
+          NUMBER: ${{ github.event.issue.number }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          remote="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          for attempt in 1 2 3 4 5; do
+            : >"$ORCHARD_MESSAGE"
+            python3 tools/orchard.py yank "$PACKAGE" "$VERSION" --owner "$AUTHOR"
+            python3 tools/orchard.py validate >/dev/null
+            git add index search.json
+            git commit --quiet -m "Yank $PACKAGE $VERSION (#$NUMBER)"
+            if git push --quiet "$remote" HEAD:main; then
+              exit 0
+            fi
+            git fetch --quiet "$remote" main
+            git reset --quiet --hard FETCH_HEAD
+            sleep $((attempt * 5))
+          done
+          echo "Refused: main kept changing; try again by editing this issue." >"$ORCHARD_MESSAGE"
+          exit 1
+
+      - name: Reply and close
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$ORCHARD_MESSAGE"
+          gh issue close "$NUMBER" --repo "$GITHUB_REPOSITORY" --reason completed
+
+      - name: Reply with what went wrong
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "This version wasn't yanked."
+            echo
+            [ -s "$ORCHARD_MESSAGE" ] && cat "$ORCHARD_MESSAGE"
+            echo
+            echo "Fix it, then edit this issue to try again. The log: $RUN"
+          } >"$RUNNER_TEMP/reply.md"
+          gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/reply.md"

@@ -1,0 +1,139 @@
+# SPDX-License-Identifier: MIT WITH Plumlang-trademarks
+#
+# Publish a package: runs on an issue opened (or edited) from the "Publish a
+# package" form, which labels it `publish`. It checks out the requested tag
+# of the author's repository, runs `plum package` on it, checks the name,
+# the version and ownership (the issue's author is the identity), commits
+# the bundle and the index to main, and replies on the issue.
+#
+# The issue's text is untrusted: it reaches the shell only through
+# environment variables, and tools/orchard.py checks every field against a
+# strict pattern before anything uses it. The package's code is never run:
+# `plum package` only parses and checks it.
+name: Publish
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions: {}
+
+# One run per issue at a time. Runs for different issues may overlap: the
+# commit step starts again from the new main if another got there first.
+concurrency:
+  group: publish-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'publish')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # commit the bundle and the index to main
+      issues: write   # reply, and close the issue
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Start the reply
+        run: |
+          echo "ORCHARD_MESSAGE=$RUNNER_TEMP/message.md" >>"$GITHUB_ENV"
+          : >"$RUNNER_TEMP/message.md"
+
+      - name: Read the request
+        id: request
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python3 tools/orchard.py parse-issue publish
+
+      - name: Install plum
+        uses: ./.github/actions/plum
+        with:
+          source: ${{ vars.PLUM_SOURCE || 'commit' }}
+          commit: ${{ vars.PLUM_COMMIT || '9dc950a3a3cedee7784224f891d7e12341f28583' }}
+
+      - name: Check out the tag
+        env:
+          REPOSITORY: ${{ steps.request.outputs.repository }}
+          TAG: ${{ steps.request.outputs.tag }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          git -c protocol.file.allow=never -c advice.detachedHead=false clone --quiet --depth 1 \
+            --no-recurse-submodules --branch "$TAG" -- "$REPOSITORY.git" "$RUNNER_TEMP/package" ||
+            { echo "Refused: can't check out the tag \`$TAG\` of $REPOSITORY." >>"$ORCHARD_MESSAGE"; exit 1; }
+
+      - name: Package it
+        env:
+          FOLDER: ${{ steps.request.outputs.folder }}
+          PLUM_HOME: ${{ runner.temp }}/plum-home
+          NO_COLOR: "1"
+        run: |
+          dir="$RUNNER_TEMP/package${FOLDER:+/$FOLDER}"
+          mkdir -p "$RUNNER_TEMP/out"
+          if ! (cd "$dir" && plum package --out "$RUNNER_TEMP/out") >"$RUNNER_TEMP/package.txt" 2>&1; then
+            cat "$RUNNER_TEMP/package.txt"
+            { echo "Refused: \`plum package\` failed:"; echo; echo '```text'; head -c 6000 "$RUNNER_TEMP/package.txt"; echo '```'; } >>"$ORCHARD_MESSAGE"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/package.txt"
+          count=$(find "$RUNNER_TEMP/out" -name '*.plumpkg' | wc -l)
+          [ "$count" -eq 1 ] || { echo "Refused: plum package made $count bundles." >>"$ORCHARD_MESSAGE"; exit 1; }
+
+      - name: Record it in the index and commit to main
+        env:
+          PACKAGE: ${{ steps.request.outputs.package }}
+          REPOSITORY: ${{ steps.request.outputs.repository }}
+          AUTHOR: ${{ github.event.issue.user.login }}
+          NUMBER: ${{ github.event.issue.number }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          bundle=$(find "$RUNNER_TEMP/out" -name '*.plumpkg')
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          remote="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          for attempt in 1 2 3 4 5; do
+            : >"$ORCHARD_MESSAGE"
+            python3 tools/orchard.py add-version "$bundle" \
+              --package "$PACKAGE" --owner "$AUTHOR" --repository "$REPOSITORY" >"$RUNNER_TEMP/record.txt"
+            version=$(sed -n 's/^version=//p' "$RUNNER_TEMP/record.txt")
+            python3 tools/orchard.py validate >/dev/null
+            git add index packages search.json
+            git commit --quiet -m "Publish $PACKAGE $version (#$NUMBER)"
+            if git push --quiet "$remote" HEAD:main; then
+              exit 0
+            fi
+            # another change reached main first: start again from it
+            git fetch --quiet "$remote" main
+            git reset --quiet --hard FETCH_HEAD
+            sleep $((attempt * 5))
+          done
+          echo "Refused: main kept changing; try again by editing this issue." >"$ORCHARD_MESSAGE"
+          exit 1
+
+      - name: Reply and close
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$ORCHARD_MESSAGE"
+          gh issue close "$NUMBER" --repo "$GITHUB_REPOSITORY" --reason completed
+
+      - name: Reply with what went wrong
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "This request wasn't published."
+            echo
+            [ -s "$ORCHARD_MESSAGE" ] && cat "$ORCHARD_MESSAGE"
+            echo
+            echo "Fix it, then edit this issue to try again. The log: $RUN"
+          } >"$RUNNER_TEMP/reply.md"
+          gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/reply.md"

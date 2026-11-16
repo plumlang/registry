@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: MIT WITH Plumlang-trademarks
+#
+# Put `plum` on the PATH, one of two ways:
+#
+#   source: release   the latest release of plumlang/plumlang, installed with
+#                     its tools/install/install.sh (checked against SHA256SUMS)
+#   source: commit    built from source at a pinned commit of plumlang/plumlang,
+#                     for before a release with `plum package` exists
+#
+# The workflows pick with the repository variables PLUM_SOURCE and
+# PLUM_COMMIT (see README.md, "Running the registry").
+name: Install plum
+description: Install the plum command, from a release or a pinned commit
+inputs:
+  source:
+    description: release or commit
+    required: true
+  commit:
+    description: the plumlang/plumlang commit to build, for source commit
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Check the inputs
+      shell: bash
+      env:
+        SOURCE: ${{ inputs.source }}
+        COMMIT: ${{ inputs.commit }}
+      run: |
+        case "$SOURCE" in
+          release) ;;
+          commit) [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "PLUM_COMMIT must be a full commit SHA"; exit 1; } ;;
+          *) echo "PLUM_SOURCE must be release or commit"; exit 1 ;;
+        esac
+    - name: Install the latest release
+      if: inputs.source == 'release'
+      shell: bash
+      run: |
+        curl -fsSL --proto '=https' --tlsv1.2 \
+          https://github.com/plumlang/plumlang/releases/latest/download/install.sh -o "$RUNNER_TEMP/install.sh"
+        PLUM_INSTALL="$RUNNER_TEMP/plum" sh "$RUNNER_TEMP/install.sh"
+        echo "$RUNNER_TEMP/plum/bin" >>"$GITHUB_PATH"
+    - name: Check out plumlang at the pinned commit
+      if: inputs.source == 'commit'
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      with:
+        repository: plumlang/plumlang
+        ref: ${{ inputs.commit }}
+        path: .plum-source
+        persist-credentials: false
+    - name: Build plum
+      if: inputs.source == 'commit'
+      shell: bash
+      run: |
+        make -C .plum-source -j"$(nproc)"
+        mkdir -p "$RUNNER_TEMP/plum/bin"
+        cp .plum-source/plum "$RUNNER_TEMP/plum/bin/plum"
+        rm -rf .plum-source
+        echo "$RUNNER_TEMP/plum/bin" >>"$GITHUB_PATH"
+    - name: Show the version
+      shell: bash
+      run: plum version

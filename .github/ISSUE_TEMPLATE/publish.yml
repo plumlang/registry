@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: MIT WITH Plumlang-trademarks
+# `plum publish` prints a link that fills this form in: ?template=publish.yml
+# &package=...&repository=...&tag=... (the ids below).
+name: Publish a package
+description: Publish a new package, or a new version of one you own, on Orchard.
+title: "Publish PACKAGE VERSION"
+labels: ["publish"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Orchard builds your package from a tag of its repository with `plum package`, and publishes that bundle. Run `plum publish` in your package's directory first: it checks the package and fills this form in for you.
+
+        - The first publisher of a name owns it; only its owners publish new versions. **You, the author of this issue, are the identity.**
+        - The version must be higher than every version published before.
+        - Read the rules in the [README](https://github.com/plumlang/registry#rules) first: no malware, no name squatting, no secrets.
+  - type: input
+    id: package
+    attributes:
+      label: Package
+      description: The name in plum.toml.
+      placeholder: weather
+    validations:
+      required: true
+  - type: input
+    id: repository
+    attributes:
+      label: Repository
+      description: The public GitHub repository, as in plum.toml's repository.
+      placeholder: https://github.com/OWNER/REPO
+    validations:
+      required: true
+  - type: input
+    id: tag
+    attributes:
+      label: Tag
+      description: The git tag of the release to publish.
+      placeholder: v1.2.0
+    validations:
+      required: true
+  - type: input
+    id: folder
+    attributes:
+      label: Folder
+      description: The package's folder in the repository, if it isn't the top (where plum.toml is).
+      placeholder: packages/weather
+    validations:
+      required: false
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Rules
+      options:
+        - label: I may publish this code, it contains no malware and no secrets, and the name isn't squatted.
+          required: true

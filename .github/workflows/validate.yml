@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: MIT WITH Plumlang-trademarks
+#
+# Check the index on every pull request and push: each index file against
+# its schema and the name rules, each bundle against its sha256, and
+# search.json against the index (tools/orchard.py validate). Then the whole
+# road a package travels, with a real plum: package the example, publish it
+# into a fresh index, `plum add` it and run it (tools/round-trip.sh).
+name: Validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  index:
+    name: index
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: python3 tools/orchard.py validate
+
+  round-trip:
+    name: publish, add and run
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/plum
+        with:
+          source: ${{ vars.PLUM_SOURCE || 'commit' }}
+          commit: ${{ vars.PLUM_COMMIT || '9dc950a3a3cedee7784224f891d7e12341f28583' }}
+      - run: sh tools/round-trip.sh "$(command -v plum)"
